@@ -1,0 +1,156 @@
+# Shortcut commands
+SHELL 	= bash		#for the coloring of [OK] [ERROR] and other strings
+CC     	= g++
+CC_OPT	= g++ -O3
+RM 	= rm
+ECHO	= /bin/echo
+CAT	= cat
+PRINTF	= printf
+DOXYGEN = doxygen
+######################################
+# Executable's Names
+TARGET = cs251_exe_g03
+TARGET_OPT = cs251_exe_g03_opt
+
+# Paths
+ROOT0=./
+ROOT_BOX2D=$(ROOT0)/external
+SRCDIR = $(ROOT0)/src
+OBJDIR = $(ROOT0)/myobjs
+BINDIR = $(ROOT0)/mybins
+DOCDIR = $(ROOT0)/doc
+
+# Library Paths
+BOX2D_ROOT=$(ROOT_BOX2D)
+GLUI_ROOT=/usr
+GL_ROOT=/usr/include/
+
+#Libraries
+LIBS = -lBox2D -lglui -lglut -lGLU -lGL
+
+# Compiler and Linker flags
+CPPFLAGS =-g -O3 -Wall -fno-strict-aliasing
+CPPFLAGS+=-I $(BOX2D_ROOT)/include -I $(GLUI_ROOT)/include
+LDFLAGS+=-L $(BOX2D_ROOT)/lib -L $(GLUI_ROOT)/lib
+
+######################################
+
+NO_COLOR=\e[0m
+OK_COLOR=\e[1;32m
+ERR_COLOR=\e[1;31m
+WARN_COLOR=\e[1;33m
+MESG_COLOR=\e[1;34m
+FILE_COLOR=\e[1;37m
+
+OK_STRING="[OK]"
+ERR_STRING="[ERRORS]"
+WARN_STRING="[WARNINGS]"
+OK_FMT="${OK_COLOR}%30s\n${NO_COLOR}"
+ERR_FMT="${ERR_COLOR}%30s\n${NO_COLOR}"
+WARN_FMT="${WARN_COLOR}%30s\n${NO_COLOR}"
+######################################
+
+SRCS := $(wildcard $(SRCDIR)/*.cpp)
+INCS := $(wildcard $(SRCDIR)/*.hpp)
+OBJS := $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o) 
+OBJS_OPT := $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%_opt.o)
+######################################
+
+setup: dirs b2dsetup
+
+dirs:
+	@mkdir -p obj	#the '-p' tag ensures that we ignore making the directory if it already exists
+	@mkdir -p bin
+
+b2dsetup:
+ifneq (,$(wildcard external/lib/*.a))
+	@$(ECHO) "libBox2D.a library in external/lib	...OK"
+else
+	cd ./external/src; tar -xzvf Box2D.tgz; mkdir ./Box2D/build251; cd Box2D/build251; cmake ../; make; make install
+endif
+ifneq (,$(wildcard external/src/Box2D))
+	@$(ECHO) "Box2D installation in external/src	...OK"
+else
+	cd ./external/src; tar -xzvf Box2D.tgz; mkdir ./Box2D/build251; cd Box2D/build251; cmake ../; make; make install
+endif
+
+exe: compile $(BINDIR)/$(TARGET)
+
+exe_opt: compile $(BINDIR)/$(TARGET_OPT)
+
+compile:
+	@$(ECHO) "Setting up compilation..."
+
+$(BINDIR)/$(TARGET): $(OBJS)
+	@$(PRINTF) "$(MESG_COLOR)Building executable:$(NO_COLOR) $(FILE_COLOR) %16s$(NO_COLOR)" "$(notdir $@)"
+	@$(CC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS) 2> temp.log || touch temp.err
+	@if test -e temp.err; \
+	then $(PRINTF) $(ERR_FMT) $(ERR_STRING) && $(CAT) temp.log; \
+	elif test -s temp.log; \
+	then $(PRINTF) $(WARN_FMT) $(WARN_STRING) && $(CAT) temp.log; \
+	else $(PRINTF) $(OK_FMT) $(OK_STRING); \
+	fi;
+	@$(RM) -f temp.log temp.err
+
+$(BINDIR)/$(TARGET_OPT): $(OBJS_OPT)
+	@$(PRINTF) "$(MESG_COLOR)Building executable:$(NO_COLOR) $(FILE_COLOR) %16s$(NO_COLOR)" "$(notdir $@)"
+	@$(CC_OPT) -o $@ $(LDFLAGS) $(OBJS_OPT) $(LIBS) 2> temp.log || touch temp.err
+	@if test -e temp.err; \
+	then $(PRINTF) $(ERR_FMT) $(ERR_STRING) && $(CAT) temp.log; \
+	elif test -s temp.log; \
+	then $(PRINTF) $(WARN_FMT) $(WARN_STRING) && $(CAT) temp.log; \
+	else $(PRINTF) $(OK_FMT) $(OK_STRING); \
+	fi;
+	@$(RM) -f temp.log temp.err
+
+-include -include $(OBJS:.o=.d)
+
+$(OBJS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+	@$(PRINTF) "$(MESG_COLOR)Compiling: $(NO_COLOR) $(FILE_COLOR) %25s$(NO_COLOR)" "$(notdir $<)"
+	@$(CC) $(CPPFLAGS) -c $< -o $@ -MD 2> temp.log || touch temp.err
+	@if test -e temp.err; \
+	then $(PRINTF) $(ERR_FMT) $(ERR_STRING) && $(CAT) temp.log; \
+	elif test -s temp.log; \
+	then $(PRINTF) $(WARN_FMT) $(WARN_STRING) && $(CAT) temp.log; \
+	else printf "${OK_COLOR}%30s\n${NO_COLOR}" "[OK]"; \
+	fi;
+	@$(RM) -f tempopt.log tempopt.err
+
+-include -include $(OBJS_OPT:_opt.o=_opt.d)
+
+$(OBJS_OPT): $(OBJDIR)/%_opt.o : $(SRCDIR)/%.cpp
+	@$(PRINTF) "$(MESG_COLOR)Compiling: $(NO_COLOR) $(FILE_COLOR) %25s$(NO_COLOR)" "$(notdir $<)"
+	@$(CC_OPT) $(CPPFLAGS) -c $< -o $@ -MD 2> temp.log || touch temp.err
+	@if test -e temp.err; \
+	then $(PRINTF) $(ERR_FMT) $(ERR_STRING) && $(CAT) temp.log; \
+	elif test -s temp.log; \
+	then $(PRINTF) $(WARN_FMT) $(WARN_STRING) && $(CAT) temp.log; \
+	else printf "${OK_COLOR}%30s\n${NO_COLOR}" "[OK]"; \
+	fi;
+	@$(RM) -f tempopt.log tempopt.err
+
+clean:
+	@$(ECHO) -n "Deleting object files..."
+	@$(RM) -f $(OBJDIR)/*
+	@$(ECHO) "Done"
+	@$(ECHO) -n "Deleting executables..."
+	@$(RM) -f $(BINDIR)/*
+	@$(ECHO) "Done"
+
+distclean: clean
+	@$(ECHO) -n "Deleting folders..."
+	@$(RM) -rf $(BINDIR)
+	@$(RM) -rf $(OBJDIR)
+	@$(ECHO) "Done"
+	@$(ECHO) -n "Deleting Box2D installation..."
+	@$(RM) -rf $(BOX2D_ROOT)/include/Box2D
+	@$(RM) -rf $(BOX2D_ROOT)/lib/Box2D
+	@$(RM) $(BOX2D_ROOT)/lib/libBox2D.a
+	@$(RM) -rf $(BOX2D_ROOT)/src/Box2D
+	@$(ECHO) "Done"
+
+makesubmission:
+	@$(ECHO) -n "creating compressed file..."
+	@tar -czf lab05_g03.tar.gz src makefile_g03
+	@$(ECHO) "Done"
+
