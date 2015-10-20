@@ -135,7 +135,14 @@ codeDoc:
 	@$(DOXYGEN) $(DOCDIR)/Doxyfile 2 > /dev/null
 	@$(ECHO) "Done"
 
+report:
+	pdflatex Report-Coffee_Maker.tex
+	bibtex Report-Coffee_Maker
+	pdflatex Report-Coffee_Maker.tex
+	pdflatex Report-Coffee_Maker.tex
+
 clean:
+	rm -rf Report-Coffee_Maker.aux Report-Coffee_Maker.bbl Report-Coffee_Maker.blg Report-Coffee_Maker.log Report-Coffee_Maker.pdf
 	@$(ECHO) -n "Deleting object files..."
 	@$(RM) -f $(OBJDIR)/*
 	@$(ECHO) "Done"

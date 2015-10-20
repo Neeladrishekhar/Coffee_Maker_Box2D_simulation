@@ -56,24 +56,6 @@ OBJS := $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 OBJS_OPT := $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%_opt.o)
 ######################################
 
-setup: dirs b2dsetup
-
-dirs:
-	@mkdir -p obj	#the '-p' tag ensures that we ignore making the directory if it already exists
-	@mkdir -p bin
-
-b2dsetup:
-ifneq (,$(wildcard external/lib/*.a))
-	@$(ECHO) "libBox2D.a library in external/lib	...OK"
-else
-	cd ./external/src; tar -xzvf Box2D.tgz; mkdir ./Box2D/build251; cd Box2D/build251; cmake ../; make; make install
-endif
-ifneq (,$(wildcard external/src/Box2D))
-	@$(ECHO) "Box2D installation in external/src	...OK"
-else
-	cd ./external/src; tar -xzvf Box2D.tgz; mkdir ./Box2D/build251; cd Box2D/build251; cmake ../; make; make install
-endif
-
 exe: compile $(BINDIR)/$(TARGET)
 
 exe_opt: compile $(BINDIR)/$(TARGET_OPT)
@@ -129,6 +111,24 @@ $(OBJS_OPT): $(OBJDIR)/%_opt.o : $(SRCDIR)/%.cpp
 	fi;
 	@$(RM) -f tempopt.log tempopt.err
 
+setup: dirs b2dsetup
+
+dirs:
+	@mkdir -p obj	#the '-p' tag ensures that we ignore making the directory if it already exists
+	@mkdir -p bin
+
+b2dsetup:
+ifneq (,$(wildcard external/lib/*.a))
+	@$(ECHO) "libBox2D.a library in external/lib	...OK"
+else
+	cd ./external/src; tar -xzvf Box2D.tgz; mkdir ./Box2D/build251; cd Box2D/build251; cmake ../; make; make install
+endif
+ifneq (,$(wildcard external/src/Box2D))
+	@$(ECHO) "Box2D installation in external/src	...OK"
+else
+	cd ./external/src; tar -xzvf Box2D.tgz; mkdir ./Box2D/build251; cd Box2D/build251; cmake ../; make; make install
+endif
+
 codeDoc:
 	@$(ECHO) -n "Generating Doxygen Documentation ...  "
 	@$(RM) -rf doc/html
@@ -136,6 +136,7 @@ codeDoc:
 	@$(ECHO) "Done"
 
 clean:
+	rm -rf Report-Coffee_Maker.aux Report-Coffee_Maker.bbl Report-Coffee_Maker.blg Report-Coffee_Maker.log Report-Coffee_Maker.pdf
 	@$(ECHO) -n "Deleting object files..."
 	@$(RM) -f $(OBJDIR)/*
 	@$(ECHO) "Done"
@@ -155,7 +156,7 @@ distclean: clean
 	@$(RM) -rf $(BOX2D_ROOT)/src/Box2D
 	@$(ECHO) "Done"
 
-makesubmission:
+release:
 	@$(ECHO) -n "creating compressed file..."
 	@tar -czf lab05_g03.tar.gz src makefile_g03
 	@$(ECHO) "Done"
